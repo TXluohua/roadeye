@@ -1,0 +1,51 @@
+{
+  "root": "D:\\huaqing-work\\python\\roadeye\\data\\raw\\unified",
+  "data_yaml": "D:\\huaqing-work\\python\\roadeye\\data\\raw\\unified\\data.yaml",
+  "classes": [
+    "Longitudinal Crack (D00)",
+    "Transverse Crack (D10)",
+    "Alligator Crack (D20)",
+    "Pothole (D40)"
+  ],
+  "splits": {
+    "train": {
+      "path": "D:\\huaqing-work\\python\\roadeye\\data\\raw\\unified\\images\\train",
+      "img_dir": "D:\\huaqing-work\\python\\roadeye\\data\\raw\\unified\\images\\train",
+      "fmt": "yolo",
+      "n_img": 12838,
+      "n_lab": 12838,
+      "n_inst": 26143,
+      "n_empty": 0,
+      "n_missing": 0
+    },
+    "val": {
+      "path": "D:\\huaqing-work\\python\\roadeye\\data\\raw\\unified\\images\\val",
+      "img_dir": "D:\\huaqing-work\\python\\roadeye\\data\\raw\\unified\\images\\val",
+      "fmt": "yolo",
+      "n_img": 4509,
+      "n_lab": 4509,
+      "n_inst": 11471,
+      "n_empty": 0,
+      "n_missing": 0
+    }
+  },
+  "class_distribution": {
+    "1": 8323,
+    "0": 13442,
+    "2": 9045,
+    "3": 6804
+  },
+  "image_sizes": {
+    "512x512": 3279,
+    "720x720": 2742,
+    "600x600": 1938,
+    "1024x1024": 24,
+    "540x540": 13,
+    "1080x1080": 4
+  },
+  "issues": {},
+  "tiny_boxes": 126,
+  "diagnosis": [
+    "✅ 一切正常，可以开始训练"
+  ]
+}

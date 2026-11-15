@@ -1,0 +1,425 @@
+{
+  "meta": {
+    "title": "E1 基线训练",
+    "model": "yolo11n.pt",
+    "imgsz": 640,
+    "epochs": 50,
+    "batch": 16,
+    "dataset": "Unified_Road_Defect_Dataset (RDD2022 合并版)",
+    "train_images": 12838,
+    "val_images": 4509,
+    "train_minutes": 125,
+    "conclusion": "第 40 轮起 val/box_loss 由 1.914 升到 1.943 而 train 继续降 → 已过拟合，加轮无用",
+    "inference_ms": {
+      "preprocess": 0.2,
+      "inference": 1.6,
+      "postprocess": 1.6
+    }
+  },
+  "overall": {
+    "P": 0.57,
+    "R": 0.416,
+    "mAP50": 0.418,
+    "mAP50_95": 0.203,
+    "instances": 11470,
+    "images": 4509
+  },
+  "per_class": [
+    {
+      "code": "D00",
+      "zh": "纵向裂缝",
+      "en": "Longitudinal Crack",
+      "images": 2500,
+      "instances": 4807,
+      "P": 0.589,
+      "R": 0.415,
+      "mAP50": 0.422,
+      "mAP50_95": 0.215
+    },
+    {
+      "code": "D10",
+      "zh": "横向裂缝",
+      "en": "Transverse Crack",
+      "images": 1757,
+      "instances": 2992,
+      "P": 0.553,
+      "R": 0.427,
+      "mAP50": 0.413,
+      "mAP50_95": 0.173
+    },
+    {
+      "code": "D20",
+      "zh": "龟裂",
+      "en": "Alligator Crack",
+      "images": 1400,
+      "instances": 1769,
+      "P": 0.627,
+      "R": 0.6,
+      "mAP50": 0.612,
+      "mAP50_95": 0.325
+    },
+    {
+      "code": "D40",
+      "zh": "坑槽",
+      "en": "Pothole",
+      "images": 699,
+      "instances": 1902,
+      "P": 0.512,
+      "R": 0.221,
+      "mAP50": 0.228,
+      "mAP50_95": 0.1
+    }
+  ],
+  "curve": [
+    {
+      "epoch": 1,
+      "train_box": 2.0867,
+      "val_box": 2.2291,
+      "mAP50": 0.1694,
+      "mAP50_95": 0.066
+    },
+    {
+      "epoch": 2,
+      "train_box": 2.0378,
+      "val_box": 2.3017,
+      "mAP50": 0.1402,
+      "mAP50_95": 0.0515
+    },
+    {
+      "epoch": 3,
+      "train_box": 2.099,
+      "val_box": 2.3437,
+      "mAP50": 0.1134,
+      "mAP50_95": 0.0432
+    },
+    {
+      "epoch": 4,
+      "train_box": 2.1149,
+      "val_box": 2.3413,
+      "mAP50": 0.1091,
+      "mAP50_95": 0.0397
+    },
+    {
+      "epoch": 5,
+      "train_box": 2.0465,
+      "val_box": 2.2239,
+      "mAP50": 0.1408,
+      "mAP50_95": 0.0549
+    },
+    {
+      "epoch": 6,
+      "train_box": 1.9838,
+      "val_box": 2.162,
+      "mAP50": 0.192,
+      "mAP50_95": 0.0778
+    },
+    {
+      "epoch": 7,
+      "train_box": 1.9421,
+      "val_box": 2.1101,
+      "mAP50": 0.2233,
+      "mAP50_95": 0.0924
+    },
+    {
+      "epoch": 8,
+      "train_box": 1.9175,
+      "val_box": 2.0963,
+      "mAP50": 0.2516,
+      "mAP50_95": 0.1065
+    },
+    {
+      "epoch": 9,
+      "train_box": 1.9007,
+      "val_box": 2.1026,
+      "mAP50": 0.2572,
+      "mAP50_95": 0.1104
+    },
+    {
+      "epoch": 10,
+      "train_box": 1.8784,
+      "val_box": 2.0799,
+      "mAP50": 0.2783,
+      "mAP50_95": 0.1188
+    },
+    {
+      "epoch": 11,
+      "train_box": 1.8609,
+      "val_box": 2.0596,
+      "mAP50": 0.2761,
+      "mAP50_95": 0.1169
+    },
+    {
+      "epoch": 12,
+      "train_box": 1.8481,
+      "val_box": 2.0238,
+      "mAP50": 0.2957,
+      "mAP50_95": 0.1295
+    },
+    {
+      "epoch": 13,
+      "train_box": 1.823,
+      "val_box": 2.0054,
+      "mAP50": 0.2968,
+      "mAP50_95": 0.1294
+    },
+    {
+      "epoch": 14,
+      "train_box": 1.8135,
+      "val_box": 2.0178,
+      "mAP50": 0.2968,
+      "mAP50_95": 0.131
+    },
+    {
+      "epoch": 15,
+      "train_box": 1.81,
+      "val_box": 1.9966,
+      "mAP50": 0.321,
+      "mAP50_95": 0.141
+    },
+    {
+      "epoch": 16,
+      "train_box": 1.7925,
+      "val_box": 1.9952,
+      "mAP50": 0.3244,
+      "mAP50_95": 0.1421
+    },
+    {
+      "epoch": 17,
+      "train_box": 1.7824,
+      "val_box": 1.9924,
+      "mAP50": 0.3151,
+      "mAP50_95": 0.1434
+    },
+    {
+      "epoch": 18,
+      "train_box": 1.7738,
+      "val_box": 1.9574,
+      "mAP50": 0.3404,
+      "mAP50_95": 0.1548
+    },
+    {
+      "epoch": 19,
+      "train_box": 1.7628,
+      "val_box": 1.9706,
+      "mAP50": 0.3491,
+      "mAP50_95": 0.1567
+    },
+    {
+      "epoch": 20,
+      "train_box": 1.7541,
+      "val_box": 1.9761,
+      "mAP50": 0.3406,
+      "mAP50_95": 0.1555
+    },
+    {
+      "epoch": 21,
+      "train_box": 1.737,
+      "val_box": 1.9495,
+      "mAP50": 0.3464,
+      "mAP50_95": 0.1593
+    },
+    {
+      "epoch": 22,
+      "train_box": 1.7349,
+      "val_box": 1.9556,
+      "mAP50": 0.3471,
+      "mAP50_95": 0.1606
+    },
+    {
+      "epoch": 23,
+      "train_box": 1.731,
+      "val_box": 1.9464,
+      "mAP50": 0.3562,
+      "mAP50_95": 0.167
+    },
+    {
+      "epoch": 24,
+      "train_box": 1.7257,
+      "val_box": 1.9577,
+      "mAP50": 0.3675,
+      "mAP50_95": 0.1713
+    },
+    {
+      "epoch": 25,
+      "train_box": 1.7098,
+      "val_box": 1.9269,
+      "mAP50": 0.3744,
+      "mAP50_95": 0.1757
+    },
+    {
+      "epoch": 26,
+      "train_box": 1.6942,
+      "val_box": 1.9267,
+      "mAP50": 0.3741,
+      "mAP50_95": 0.1774
+    },
+    {
+      "epoch": 27,
+      "train_box": 1.6973,
+      "val_box": 1.9375,
+      "mAP50": 0.3769,
+      "mAP50_95": 0.1774
+    },
+    {
+      "epoch": 28,
+      "train_box": 1.6945,
+      "val_box": 1.921,
+      "mAP50": 0.3761,
+      "mAP50_95": 0.1767
+    },
+    {
+      "epoch": 29,
+      "train_box": 1.6929,
+      "val_box": 1.9235,
+      "mAP50": 0.3835,
+      "mAP50_95": 0.1796
+    },
+    {
+      "epoch": 30,
+      "train_box": 1.6784,
+      "val_box": 1.9186,
+      "mAP50": 0.3907,
+      "mAP50_95": 0.186
+    },
+    {
+      "epoch": 31,
+      "train_box": 1.6669,
+      "val_box": 1.9188,
+      "mAP50": 0.3907,
+      "mAP50_95": 0.187
+    },
+    {
+      "epoch": 32,
+      "train_box": 1.6608,
+      "val_box": 1.9139,
+      "mAP50": 0.3966,
+      "mAP50_95": 0.188
+    },
+    {
+      "epoch": 33,
+      "train_box": 1.6598,
+      "val_box": 1.9113,
+      "mAP50": 0.3985,
+      "mAP50_95": 0.191
+    },
+    {
+      "epoch": 34,
+      "train_box": 1.6519,
+      "val_box": 1.9051,
+      "mAP50": 0.4024,
+      "mAP50_95": 0.1942
+    },
+    {
+      "epoch": 35,
+      "train_box": 1.6462,
+      "val_box": 1.9096,
+      "mAP50": 0.4026,
+      "mAP50_95": 0.1939
+    },
+    {
+      "epoch": 36,
+      "train_box": 1.6345,
+      "val_box": 1.9104,
+      "mAP50": 0.4053,
+      "mAP50_95": 0.1946
+    },
+    {
+      "epoch": 37,
+      "train_box": 1.6306,
+      "val_box": 1.9108,
+      "mAP50": 0.4073,
+      "mAP50_95": 0.1957
+    },
+    {
+      "epoch": 38,
+      "train_box": 1.6289,
+      "val_box": 1.9119,
+      "mAP50": 0.4038,
+      "mAP50_95": 0.1956
+    },
+    {
+      "epoch": 39,
+      "train_box": 1.611,
+      "val_box": 1.9141,
+      "mAP50": 0.4101,
+      "mAP50_95": 0.1975
+    },
+    {
+      "epoch": 40,
+      "train_box": 1.6081,
+      "val_box": 1.9136,
+      "mAP50": 0.4092,
+      "mAP50_95": 0.1982
+    },
+    {
+      "epoch": 41,
+      "train_box": 1.6199,
+      "val_box": 1.9174,
+      "mAP50": 0.407,
+      "mAP50_95": 0.1969
+    },
+    {
+      "epoch": 42,
+      "train_box": 1.6102,
+      "val_box": 1.9274,
+      "mAP50": 0.4109,
+      "mAP50_95": 0.1988
+    },
+    {
+      "epoch": 43,
+      "train_box": 1.5918,
+      "val_box": 1.9262,
+      "mAP50": 0.4134,
+      "mAP50_95": 0.2
+    },
+    {
+      "epoch": 44,
+      "train_box": 1.586,
+      "val_box": 1.9334,
+      "mAP50": 0.4147,
+      "mAP50_95": 0.2012
+    },
+    {
+      "epoch": 45,
+      "train_box": 1.5714,
+      "val_box": 1.928,
+      "mAP50": 0.4178,
+      "mAP50_95": 0.2024
+    },
+    {
+      "epoch": 46,
+      "train_box": 1.5668,
+      "val_box": 1.9293,
+      "mAP50": 0.4186,
+      "mAP50_95": 0.2025
+    },
+    {
+      "epoch": 47,
+      "train_box": 1.5538,
+      "val_box": 1.9336,
+      "mAP50": 0.4183,
+      "mAP50_95": 0.2026
+    },
+    {
+      "epoch": 48,
+      "train_box": 1.5455,
+      "val_box": 1.9376,
+      "mAP50": 0.4179,
+      "mAP50_95": 0.2026
+    },
+    {
+      "epoch": 49,
+      "train_box": 1.5319,
+      "val_box": 1.9392,
+      "mAP50": 0.4185,
+      "mAP50_95": 0.2032
+    },
+    {
+      "epoch": 50,
+      "train_box": 1.5157,
+      "val_box": 1.9433,
+      "mAP50": 0.4192,
+      "mAP50_95": 0.2032
+    }
+  ]
+}

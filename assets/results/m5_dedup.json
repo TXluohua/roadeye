@@ -1,0 +1,64 @@
+{
+  "meta": {
+    "title": "M5 连续帧去重",
+    "purpose": "行车记录仪是视频流，同一个坑会被连续拍 30~50 帧；要交出去的是「唯一点位清单」而不是「帧清单」",
+    "rule": "整帧 dHash 汉明距离 + 框 IoU 双条件（只判 pHash 会把同段路上不同的坑误合并）",
+    "dataset_evidence": "probe.py 在训练集里检出 134 组近重复共 368 张，全部是 rdv（视频帧）来源",
+    "benchmark": "12 帧模拟车驶过序列（源图有 11 个真实病害，各帧汉明距离 0~6，全部在阈值 8 内）"
+  },
+  "params": {
+    "phash_hamming_max": 8,
+    "iou_min": 0.3,
+    "max_gap_frames": 45,
+    "same_class_only": true,
+    "keep_strategy": "conf"
+  },
+  "measured": {
+    "n_frames": 12,
+    "n_raw_boxes": 147,
+    "n_unique_points": 16,
+    "reduction_ratio": 9.19,
+    "ground_truth_points": 11,
+    "stable_rule": "出现帧数 >= 总帧数的一半（12 帧里 >=6 帧）",
+    "stable_points": 11,
+    "note": "12 帧共 147 个原始框，归并成 16 个点位（压缩 9.19 倍）；但 16 个里有 5 个只出现 1~5 帧，是 warpAffine 边缘拉伸产生的假阳性。真实病害应在一半以上的帧里都可见，按「出现 >=6 帧」过滤后剩 11 个，与源图真值 11 个完全一致。",
+    "conf_sweep": [
+      {
+        "conf": 0.25,
+        "n_raw_boxes": 147,
+        "n_points": 16,
+        "n_ge3_frames": 13,
+        "n_ge6_frames": 11
+      },
+      {
+        "conf": 0.3,
+        "n_raw_boxes": 140,
+        "n_points": 15,
+        "n_ge3_frames": 13,
+        "n_ge6_frames": 11
+      },
+      {
+        "conf": 0.35,
+        "n_raw_boxes": 127,
+        "n_points": 14,
+        "n_ge3_frames": 12,
+        "n_ge6_frames": 11
+      },
+      {
+        "conf": 0.4,
+        "n_raw_boxes": 118,
+        "n_points": 13,
+        "n_ge3_frames": 12,
+        "n_ge6_frames": 11
+      },
+      {
+        "conf": 0.5,
+        "n_raw_boxes": 95,
+        "n_points": 12,
+        "n_ge3_frames": 9,
+        "n_ge6_frames": 8
+      }
+    ],
+    "sweep_conclusion": "「出现 >=6 帧」在 conf 0.25~0.40 全区间都恰好得到 11 个，对置信度阈值不敏感 —— 说明这个过滤规则是稳的，不是靠调参凑出来的；conf 提到 0.50 才开始漏掉真病害。"
+  }
+}

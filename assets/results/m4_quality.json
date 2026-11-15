@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "title": "M4 图像质量前置",
+    "purpose": "先判「这张图能不能用」，不能用的直接跳过，而不是硬给结果",
+    "metrics": [
+      "sharpness",
+      "brightness",
+      "overexposure",
+      "contrast"
+    ],
+    "method": "对清晰图注入 3 档 blur / dark / overexpose / noise / jpeg 退化，绘制「退化强度 → 质量分」曲线，按漏检代价选定阈值"
+  },
+  "thresholds": {
+    "sharpness_min": 60.0,
+    "brightness_range": [
+      30,
+      225
+    ],
+    "overexposure_max": 0.05,
+    "underexposure_max": 0.3,
+    "contrast_min": 18.0,
+    "fail_votes": 1
+  },
+  "degradations": [
+    "blur",
+    "dark",
+    "overexpose",
+    "noise",
+    "jpeg"
+  ],
+  "note": "阈值已在 configs/quality.yaml，可由 calibrate 脚本重新标定"
+}

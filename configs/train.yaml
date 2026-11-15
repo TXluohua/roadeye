@@ -1,0 +1,57 @@
+# ============================================================
+# RoadEye 训练配置
+# 数据集：Unified_Road_Defect_Dataset（RDD2022 合并版）
+#   30,186 张 / 75,765 框 / 4 类 / YOLO 格式
+# ============================================================
+
+# ---------- 模型 ----------
+model: yolo11n.pt          # 先用 nano 跑通；想涨点换 yolo11s.pt
+pretrained: true
+
+# ---------- 训练 ----------
+epochs: 50                 # 25k 图 × 640，4060 上约 30~40s/轮 → 约 25~35 min
+batch: 16                  # 8GB 显存，640 分辨率，16 稳；OOM 就降到 8
+imgsz: 640
+workers: 8                 # Windows 上大于 8 容易出 DataLoader 卡死，别调太高
+patience: 15               # ★ 必须 < epochs，否则早停永不触发
+seed: 42
+deterministic: true
+amp: true                  # 混合精度，省显存提速
+
+# ---------- 优化器 ----------
+optimizer: auto            # 让 ultralytics 自己选（会自动无视 lr0）
+lr0: 0.01
+lrf: 0.01
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 3.0
+
+# ---------- 损失权重 ----------
+box: 7.5
+cls: 0.5
+dfl: 1.5
+
+# ---------- 增强 ----------
+# 道路病害的特点：视角固定、方向重要（横裂 vs 纵裂不能随便转）
+degrees: 0.0               # ★ 不要旋转：会把横向裂缝转成纵向，标签语义就错了
+translate: 0.1
+scale: 0.5
+shear: 0.0
+perspective: 0.0
+flipud: 0.0                # ★ 上下翻转没有物理意义（路面不会倒过来）
+fliplr: 0.5                # 左右翻转可以
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4                 # 光照差异大，v 给足
+mosaic: 1.0
+mixup: 0.0
+copy_paste: 0.0
+close_mosaic: 10           # 最后 10 轮关 mosaic，让边界收敛
+
+# ---------- 评估 ----------
+val: true
+plots: true
+save_period: -1
+project: runs
+name: baseline
+exist_ok: false
