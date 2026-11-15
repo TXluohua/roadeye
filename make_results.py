@@ -32,7 +32,17 @@ CODES = ["D00", "D10", "D20", "D40"]
 
 # --------------------------------------------------------------------------- #
 def m1_baseline() -> dict:
-    """E1 基线指标。per-class 来自训练结束时 ultralytics 的 val 输出。"""
+    """E1 基线指标。
+
+    ⚠️ per_class 和 overall 是**从训练结束时的 ultralytics val 输出手工抄来的**
+    （ultralytics 不落结构化结果文件），`curve` 则是从 runs/baseline/results.csv 现读的。
+    所以：**重训 baseline 后必须手工同步这两个表**，否则曲线会更新而指标不会，
+    页面上的数字就自相矛盾了。
+
+    口径差异说明：这里 instances=11470 是 ultralytics 评估时统计的框数，
+    而 tools/probe.py 体检报的是 11471 —— 差 1 个框，原因是评估会丢弃
+    无效/退化的框。两个数都正确，只是口径不同，不要当成 bug。
+    """
     per_class = [
         {"code": "D00", "zh": "纵向裂缝", "en": "Longitudinal Crack",
          "images": 2500, "instances": 4807,
@@ -232,11 +242,12 @@ def write(name: str, obj: dict) -> None:
 
 
 REQUIRED = {
-    "m1_baseline.json": ["meta", "overall", "per_class"],
+    "m1_baseline.json": ["meta", "overall", "per_class", "curve"],
     "m2_slice.json": ["meta", "buckets", "modes", "sweep"],
     "m3_scale.json": ["meta", "buckets", "rows"],
     "m4_quality.json": ["meta", "thresholds"],
-    "m5_dedup.json": ["meta", "params"],
+    # measured 是页面上"数字结论"那一行直接读的，缺了页面会显示空白
+    "m5_dedup.json": ["meta", "params", "measured"],
 }
 
 

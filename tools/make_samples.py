@@ -20,10 +20,6 @@ import shutil
 import sys
 from pathlib import Path
 
-import numpy as np
-import yaml
-from PIL import Image
-
 HERE = Path(__file__).resolve().parent
 PROJ = HERE.parent
 SAMP = PROJ / "assets" / "samples"

@@ -17,7 +17,6 @@ diagnose.py —— 找出「哪一类为什么差」
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -168,7 +167,9 @@ def main(argv=None) -> int:
         ms, mb = np.mean(small_recalls), np.mean(big_recalls)
         print(f"· 平均：小目标桶 {ms*100:.0f}%  vs  大目标桶 {mb*100:.0f}%")
         if mb - ms > 0.30:
-            print("  → 尺寸效应显著：小目标严重吃亏。首选 **提高 imgsz（640→1024）** 或**切片推理**")
+            print("  → 尺寸效应显著：小目标严重吃亏")
+            print("    首选 **融合切片推理**（实测 +8.0 点，见 docs/experiments.md E5）")
+            print("    单纯提高 imgsz 收益有限（E4 实测等轮次仅 +2.75 点，成本翻倍）")
         else:
             print("  → 尺寸效应不显著：问题不在分辨率，别急着调 imgsz")
     # 2) D40 是否在所有桶都差
@@ -184,7 +185,7 @@ def main(argv=None) -> int:
             print("    首选排查：① D40 标注是否混入了修补痕迹/阴影  ② 是否过采样 D40")
             print("    可跑：python diagnose.py --max-images 200 （先快速看一轮）")
 
-    print("\n把这张表贴给我，我据此定下一步实验（而不是盲目再训 2 小时）")
+    print("\n结论已按上表自动判定。各尺寸桶的完整实验数据见 docs/experiments.md 的 E2 与 E3。")
     return 0
 
 

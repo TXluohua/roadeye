@@ -88,6 +88,10 @@ const M = {                                     // 模块定义：三行说明 +
         problem:"行车记录仪是视频流，同一个坑会被连续拍 30~50 帧",
         how:"整帧 dHash 汉明距离 + 框 IoU 双条件聚类（只判 pHash 会把相邻不同的坑误合并）",
         numLine:"147 框 → 16 点位（压缩 9.19×）· 按「出现 ≥6 帧」过滤后 11 个 = 真值" },
+  m6: { num:"M6", name:"分辨率对比", render: renderM6,
+        problem:"把训练分辨率从 640 提到 1024，到底值不值？",
+        how:"同一张图用两个权重各跑一次整图推理，**各自用自己训练时的 imgsz**",
+        numLine:"等轮次 1024 高 2.75 点，但每轮耗时翻倍、推理 4.1ms vs 1.6ms" },
 };
 
 let samples = {};
@@ -145,35 +149,57 @@ function renderM2(root){
   const flat = Object.values(samples).flat();
   root.appendChild(el(`
     <div class="card">
-      <h3>同一张图：整图推理 vs 融合推理</h3>
+      <h3>同一张图：整图 / 融合 / 按需切片 三路对比</h3>
       <div class="btnrow">
         <select id="m2sel">${flat.map(f=>`<option>${f}</option>`).join('')}</select>
         <button class="act" id="m2go">对比</button>
-        <span class="muted">融合 = 整图 + 448 切片，按类 NMS 合并</span>
+        <span class="muted">融合 = 整图 + 全量 448 切片；按需 = 只切「低置信框 + 空白网格」</span>
       </div>
       <div class="row">
         <div class="col"><div class="badge">整图 @640（基线）</div>
           <img class="out" id="m2a" alt=""><div id="m2sa" class="stat"></div></div>
-        <div class="col"><div class="badge ok">整图 + 切片 融合 ★</div>
+        <div class="col"><div class="badge ok">整图 + 全量切片 融合 ★</div>
           <img class="out" id="m2b" alt=""><div id="m2sb" class="stat"></div></div>
       </div>
+      <div class="row" style="margin-top:14px">
+        <div class="col"><div class="badge warn">按需切片（E10）★</div>
+          <img class="out" id="m2c" alt=""><div id="m2sc" class="stat"></div></div>
+        <div class="col"><div id="m2diff" class="stat"></div></div>
+      </div>
     </div>
-    <div class="card"><h3>离线实验：四组方案对照（随机 1200 张）</h3><div id="m2tbl">加载中…</div></div>
+    <div class="card"><h3>离线实验：方案对照（随机 1200 张）</h3><div id="m2tbl">加载中…</div></div>
     <div class="card"><h3>参数扫描：精度 vs 延迟</h3><div id="m2sweep">加载中…</div></div>`));
 
   const run = async ()=>{
     const s = document.getElementById('m2sel').value;
     document.getElementById('m2sa').textContent='推理中…';
     document.getElementById('m2sb').textContent='';
+    document.getElementById('m2sc').textContent='';
     try{
-      const r = await jpost('/api/compare',{sample:s, conf:0.25, tile:448, overlap:0.25});
+      const [r, e] = await Promise.all([
+        jpost('/api/compare',{sample:s, conf:0.25, tile:448, overlap:0.25}),
+        jpost('/api/detect',{sample:s, mode:'adaptive', conf:0.25, tile:448,
+                             low_conf:0.45, adaptive_grid:2}),
+      ]);
       document.getElementById('m2a').src='data:image/jpeg;base64,'+r.whole.image_b64;
       document.getElementById('m2b').src='data:image/jpeg;base64,'+r.fusion.image_b64;
+      document.getElementById('m2c').src='data:image/jpeg;base64,'+e.image_b64;
       document.getElementById('m2sa').innerHTML =
         `检出 <b>${r.whole.n_dets}</b> 个　<b>${r.whole.elapsed_ms}</b> ms　切片 0 块`;
       document.getElementById('m2sb').innerHTML =
         `检出 <b>${r.fusion.n_dets}</b> 个　<b>${r.fusion.elapsed_ms}</b> ms　切片 ${r.fusion.n_tiles} 块`;
-    }catch(e){ document.getElementById('m2sa').textContent='出错：'+e.message; }
+      document.getElementById('m2sc').innerHTML =
+        `检出 <b>${e.n_dets}</b> 个　<b>${e.elapsed_ms}</b> ms　切片 ${e.n_tiles} 块`;
+      const spd = r.fusion.elapsed_ms > 0
+        ? ((1 - e.elapsed_ms / r.fusion.elapsed_ms) * 100).toFixed(0) : '—';
+      document.getElementById('m2diff').innerHTML =
+        `<b>按需 vs 全量融合</b><br>
+         切片块数：${r.fusion.n_tiles} → <b>${e.n_tiles}</b><br>
+         检出框数：${r.fusion.n_dets} → <b>${e.n_dets}</b><br>
+         耗时：${r.fusion.elapsed_ms} → <b>${e.elapsed_ms}</b> ms
+         （<b>省 ${spd}%</b>）<br>
+         <span class="muted">按需切片不改变检出质量，只减少无谓的切块。</span>`;
+    }catch(err){ document.getElementById('m2sa').textContent='出错：'+err.message; }
   };
   document.getElementById('m2go').onclick = run; run();
 
@@ -382,6 +408,60 @@ function renderM5(root){
       `${d.meta.rule}<br><br>当前参数：` +
       Object.entries(p).map(([k,v])=>`<code>${k}=${v}</code>`).join('　') +
       `<br><br>数据集证据：${d.meta.dataset_evidence}`;
+  }).catch(()=>{});
+}
+
+/* ---------------- 模块 6：分辨率对比（640 vs 1024） ---------------- */
+function renderM6(root){
+  const flat = Object.values(samples).flat();
+  root.appendChild(el(`
+    <div class="card">
+      <h3>同一张图：基线 640 vs 重训 1024</h3>
+      <div class="btnrow">
+        <select id="m6sel">${flat.map(f=>`<option>${f}</option>`).join('')}</select>
+        <button class="act" id="m6go">对比</button>
+        <span class="muted">每个权重用<b>自己训练时的 imgsz</b>，不统一传 640</span>
+      </div>
+      <div class="row">
+        <div class="col"><div class="badge">基线 640 · 50 轮</div>
+          <img class="out" id="m6a" alt=""><div id="m6sa" class="stat"></div></div>
+        <div class="col"><div class="badge warn">重训 1024 · 25 轮</div>
+          <img class="out" id="m6b" alt=""><div id="m6sb" class="stat"></div></div>
+      </div>
+    </div>
+    <div class="card"><h3>离线实测（验证集 4,509 图）</h3><div id="m6tbl">加载中…</div></div>`));
+
+  const run = async ()=>{
+    document.getElementById('m6sa').textContent = '推理中…';
+    document.getElementById('m6sb').textContent = '';
+    try{
+      const r = await jpost('/api/compare_weights',
+                            {sample: document.getElementById('m6sel').value, conf: 0.25});
+      const a = r.baseline, b = r.imgsz1024;
+      if (a){ document.getElementById('m6a').src='data:image/jpeg;base64,'+a.image_b64;
+              document.getElementById('m6sa').innerHTML =
+                `检出 <b>${a.n_dets}</b> 个　<b>${a.elapsed_ms}</b> ms　imgsz ${a.imgsz}`; }
+      if (b){ document.getElementById('m6b').src='data:image/jpeg;base64,'+b.image_b64;
+              document.getElementById('m6sb').innerHTML =
+                `检出 <b>${b.n_dets}</b> 个　<b>${b.elapsed_ms}</b> ms　imgsz ${b.imgsz}`; }
+    }catch(e){ document.getElementById('m6sa').textContent='出错：'+e.message; }
+  };
+  document.getElementById('m6go').onclick = run; run();
+
+  jget('/api/weights').then(d=>{
+    const rows = d.weights.map(w=>`<tr>
+      <td>${w.label}</td><td>${w.imgsz}</td><td>${w.epochs}</td>
+      <td>${f3(w.mAP50)}</td><td>${f3(w.mAP50_95)}</td>
+      <td>${w.size_mb ?? '—'}</td></tr>`).join('');
+    document.getElementById('m6tbl').innerHTML =
+      `<table><thead><tr><th>权重</th><th>训练 imgsz</th><th>轮数</th>
+        <th>mAP50</th><th>mAP50-95</th><th>大小 MB</th></tr></thead><tbody>${rows}</tbody></table>
+       <p class="muted" style="margin-top:10px">
+       <b>★ 这两个数不能直接比</b>：基线跑了 50 轮、1024 只跑 25 轮，且 1024 的曲线仍在上升。
+       同轮次（ep25）对比才是公平的：<b>1024 = 0.4015 vs 640 = 0.374（+2.75 点）</b>。<br>
+       代价：1024 每轮耗时翻倍（5.3 min vs 2.5 min），推理 4.1 ms vs 1.6 ms。
+       所以真正高性价比的仍是<b>融合切片（+8.0 点 @ 123 ms）</b>，见 M2。
+       </p>`;
   }).catch(()=>{});
 }
 

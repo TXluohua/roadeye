@@ -23,7 +23,6 @@ extract.py —— 解压 Unified_Road_Defect_Dataset 的三个 tar.gz，并修�
 from __future__ import annotations
 
 import argparse
-import shutil
 import sys
 import tarfile
 import time

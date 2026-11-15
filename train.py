@@ -28,7 +28,6 @@ train.py —— RoadEye 训练脚本
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
@@ -103,9 +102,13 @@ def main(argv=None) -> int:
         print("\n⚠ data.yaml 有问题，仍可继续但很可能训练失败。建议先跑 probe.py 排查")
 
     # 合并配置
+    # ⚠️ 这里是**逐字段显式构建**的，不是 **cfg ——
+    #    所以 train.yaml 里每加一个训练参数，都必须在这里手动接上，
+    #    否则配置写了也不生效（曾经 pretrained / copy_paste / save_period 就是这种情况）。
     run_cfg = {
         "data": str(data_path),
         "model": args.model or cfg.get("model", "yolo11n.pt"),
+        "pretrained": cfg.get("pretrained", True),
         "epochs": args.epochs if args.epochs is not None else cfg.get("epochs", 50),
         "batch": args.batch if args.batch is not None else cfg.get("batch", 16),
         "imgsz": args.imgsz if args.imgsz is not None else cfg.get("imgsz", 640),
@@ -136,9 +139,11 @@ def main(argv=None) -> int:
         "hsv_v": cfg.get("hsv_v", 0.4),
         "mosaic": cfg.get("mosaic", 1.0),
         "mixup": cfg.get("mixup", 0.0),
+        "copy_paste": cfg.get("copy_paste", 0.0),
         "close_mosaic": cfg.get("close_mosaic", 10),
         "val": True,
         "plots": True,
+        "save_period": cfg.get("save_period", -1),
         "project": str(HERE / cfg.get("project", "runs")),
         "name": args.name or cfg.get("name", "baseline"),
         "exist_ok": False,
@@ -173,9 +178,16 @@ def main(argv=None) -> int:
     model.train(**run_cfg)
 
     best = HERE / cfg.get("project", "runs") / run_cfg["name"] / "weights" / "best.pt"
+    rel = best.relative_to(HERE)
     print(f"\n训练完成。权重：{best}")
-    print("下一步：")
-    print(f"  python src\\offline\\eval_baseline.py --run {run_cfg['name']}")
+    print("\n下一步（都能直接跑）：")
+    print("  # 1) 按尺寸分桶诊断：看这一轮的小目标漏检情况")
+    print(f"  python diagnose.py --weights {rel}")
+    print("  # 2) 与基线对照：整图 vs 切片融合")
+    print(f"  python slice_infer.py --weights {rel} --sample 500 --modes A,D")
+    print("  # 3) 抄回指标并刷新演示台")
+    print("  python make_results.py")
+    print("\n  若要把这个权重接进演示台做现场对比，见 README「多权重对比」一节")
     return 0
 
 

@@ -40,9 +40,10 @@ import sys
 import time
 from pathlib import Path
 
-import numpy as np
-
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from core.detect import pick_weak_regions  # noqa: E402  E10 按需切片的判据
+
 SHORT = ["D00", "D10", "D20", "D40"]
 BUCKETS = [("极小<0.3%", 0.0, 0.003),
            ("小0.3~1%", 0.003, 0.01),
@@ -63,7 +64,14 @@ def parse_args(argv=None):
     ap.add_argument("--iou", type=float, default=0.5, help="评估命中阈值")
     ap.add_argument("--nms-iou", type=float, default=0.5, help="跨片合并 NMS 阈值")
     ap.add_argument("--modes", default="A,B,C,D",
-                    help="A=整图@imgsz  B=切片  C=整图@1024  D=整图+切片融合")
+                    help="A=整图@imgsz  B=切片  C=整图@1024  D=整图+切片融合  "
+                         "E=按需切片（整图→只切低置信框+空白网格）")
+    ap.add_argument("--low-conf", type=float, default=0.45,
+                    help="E 模式：整图置信度低于此值的框，其周边会被切片复查")
+    ap.add_argument("--adaptive-grid", type=int, default=2,
+                    help="E 模式：把图切成 grid×grid 大格，无检测的格子会被切片复查")
+    ap.add_argument("--no-empty-fallback", action="store_true",
+                    help="E 模式：不切「空白网格」，只切低置信框（更快但收益可能接近 0）")
     ap.add_argument("--max-images", type=int, default=0)
     ap.add_argument("--sample", type=int, default=0,
                     help=">0 时随机抽这么多张（固定 seed）。★ 注意：直接取前 N 张不具代表性，"
@@ -147,11 +155,13 @@ def run_mode(mode, model, imgs, lab_dir, args):
     """跑一种推理模式，返回 (统计, 耗时秒, 总检测框数)"""
     stats = {c: {b[0]: [0, 0] for b in BUCKETS} for c in range(4)}
     total_det = 0
+    n_tiles_used = 0          # E 模式：累计切了多少块（用于算平均开销）
     t0 = time.time()
 
     infer_imgsz = 1024 if mode == "C" else args.imgsz
     use_slice = mode in ("B", "D")
     use_whole = mode in ("A", "C", "D")      # ★ D 模式：整图 + 切片都跑
+    use_adaptive = mode == "E"               # ★ E 模式：整图 → 只切薄弱区域
 
     for n, p in enumerate(imgs, 1):
         gts = load_gt(lab_dir / (p.stem + ".txt"))
@@ -163,17 +173,44 @@ def run_mode(mode, model, imgs, lab_dir, args):
             continue
         h, w = img.shape[:2]
 
-        if use_slice:
+        boxes, scores, clss = [], [], []
+
+        if use_adaptive:
+            # ① 整图先跑
+            rw0 = model.predict(img, imgsz=args.imgsz, conf=args.conf,
+                                verbose=False, device=args.device)[0]
+            whole = []
+            if rw0.boxes is not None and len(rw0.boxes):
+                for b, cf, c in zip(rw0.boxes.xyxy.tolist(), rw0.boxes.conf.tolist(),
+                                    rw0.boxes.cls.tolist()):
+                    whole.append({"cls": int(c), "conf": float(cf),
+                                  "xyxy": [float(x) for x in b]})
+                    boxes.append([float(x) for x in b])
+                    scores.append(cf)
+                    clss.append(int(c))
+            # ② 只切薄弱区域（与 core/detect.py 用同一套判据）
+            tiles = pick_weak_regions(whole, h, w, args.tile,
+                                      grid=args.adaptive_grid,
+                                      low_conf=args.low_conf,
+                                      empty_fallback=not args.no_empty_fallback)
+            n_tiles_used += len(tiles)
+        elif use_slice:
             tiles = make_tiles(h, w, args.tile, args.overlap)
         else:
             tiles = [(0, 0, w, h)]
 
         # 批量推理所有切片
-        crops = [img[y1:y2, x1:x2] for (x1, y1, x2, y2) in tiles]
-        results = model.predict(crops, imgsz=infer_imgsz, conf=args.conf,
-                                verbose=False, device=args.device)
+        # ★ 必须防空列表：E 模式下若整图已检满、又没有空白网格，
+        #   tiles 会是空的，而 ultralytics 对空输入直接抛
+        #   FileNotFoundError("No images found in source")。
+        #   这种情况应当退化为「只用整图结果」，而不是判错。
+        if tiles:
+            crops = [img[y1:y2, x1:x2] for (x1, y1, x2, y2) in tiles]
+            results = model.predict(crops, imgsz=infer_imgsz, conf=args.conf,
+                                    verbose=False, device=args.device)
+        else:
+            results = []
 
-        boxes, scores, clss = [], [], []
         for (x1, y1, _x2, _y2), r in zip(tiles, results):
             if r.boxes is None or not len(r.boxes):
                 continue
@@ -221,8 +258,7 @@ def run_mode(mode, model, imgs, lab_dir, args):
         if n % 200 == 0:
             print(f"    [{mode}] {n}/{len(imgs)} …", flush=True)
 
-    return stats, time.time() - t0, total_det
-
+    return stats, time.time() - t0, total_det, n_tiles_used
 
 def report(mode, stats, secs, ndet, n_img, title):
     all_hit = sum(v[0] for c in stats for v in stats[c].values())
@@ -284,11 +320,15 @@ def main(argv=None) -> int:
     titles = {"A": f"整图推理 @ imgsz={args.imgsz}（基线）",
               "B": f"切片推理  {args.tile}×{args.tile} → {args.imgsz}（放大 {args.imgsz/args.tile:.1f}×）",
               "C": "整图推理 @ imgsz=1024（直接提高分辨率）",
-              "D": f"整图 + 切片融合（{args.tile}×{args.tile} → {args.imgsz}）★"}
+              "D": f"整图 + 切片融合（{args.tile}×{args.tile} → {args.imgsz}）★",
+              "E": f"按需切片：整图 → 只切低置信框+空白网格（tile {args.tile}，"
+                   f"low_conf {args.low_conf}，grid {args.adaptive_grid}）★"}
     summary = {}
+    tile_info = {}
     for m in modes:
         print(f"\n--- 跑模式 {m} ---", flush=True)
-        st, secs, ndet = run_mode(m, model, imgs, lab_dir, args)
+        st, secs, ndet, ntl = run_mode(m, model, imgs, lab_dir, args)
+        tile_info[m] = ntl
         summary[m] = report(m, st, secs, ndet, len(imgs), titles.get(m, m))
 
     print(f"\n{'='*94}")
@@ -297,7 +337,10 @@ def main(argv=None) -> int:
     base = summary.get(modes[0], 0)
     for m in modes:
         v = summary[m]
-        print(f"  {m}  recall {v*100:5.1f}%   {'（基线）' if m == modes[0] else f'相对基线 {(v-base)*100:+.1f} 个点'}")
+        extra = ""
+        if tile_info.get(m):
+            extra = f"   平均切块 {tile_info[m] / max(1, len(imgs)):.1f} 块/张"
+        print(f"  {m}  recall {v*100:5.1f}%   {'（基线）' if m == modes[0] else f'相对基线 {(v-base)*100:+.1f} 个点'}{extra}")
     print("\n把这张表保存进 docs/experiments.md，它就是 M2 模块的实验数据")
     return 0
 

@@ -19,12 +19,17 @@ import subprocess
 import sys
 import tarfile
 import time
+from pathlib import Path
 
 os.environ.pop("HTTP_PROXY", None)
 os.environ.pop("HTTPS_PROXY", None)
 
+HERE = Path(__file__).resolve().parent
 BASE = "https://hf-mirror.com/datasets/TamAko783/Unified_Road_Defect_Dataset/resolve/main/data"
-DL = r"D:\huaqing-work\python\roadeye\data\_dl"
+# 下载缓存目录：跟着本文件走，不写死绝对路径（换机器/换盘不用改）
+DL = str(HERE / "data" / "_dl")
+# 上游发布时的字节数，用于校验下载完整。若上游更新了数据集，这几个数会失配，
+# 届时按实际大小改这里（脚本会把"大小对但 gzip 坏"和"大小不符"分开报）。
 SIZES = {
     "train_a.tar.gz": 928438317,
     "val.tar.gz": 1067597682,

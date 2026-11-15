@@ -1,26 +1,17 @@
 # ============================================================
-# RoadEye 项目路径配置
-# ★ 全项目唯一允许出现路径的地方（代码里不许写死路径）
+# 数据位置配置
 # ============================================================
+# ⚠️ 现状说明（别被文件名误导）：
+#   本文件目前只有 `dataset_yaml` 真正生效——`train.py` 用它定位数据集。
+#   其它模块（app.py / getdata.py / make_results.py …）的路径仍是各自的
+#   模块级常量，**没有**统一到这里。如果把路径全部集中，需要逐个模块改，
+#   属于重构而不是配置，所以这里只保留实际被读取的字段。
+#
+#   曾经的 `weights: assets/models/best.pt` 已删除：该路径从不存在，
+#   权重实际按训练 run 组织在 `runs/<name>/weights/best.pt`。
 
 # 数据集根目录（解压后的位置，里面有 data.yaml）
 dataset_root: data/raw/unified
+
+# 训练用的 data.yaml（train.py --data 未指定时读这里）
 dataset_yaml: data/raw/unified/data.yaml
-
-# 下载缓存（tar.gz 放这里，可删）
-download_dir: data/_dl
-
-# 离线脚本产出的预计算结果（演示台只读这里）
-results_dir: assets/results
-
-# 预置样例（每个模块 3~5 张，★ 必须来自 val，不能用 train）
-samples_dir: assets/samples
-
-# 模型权重
-weights: assets/models/best.pt
-
-# probe.py 导出的框校验图
-probe_issues_dir: assets/probe_issues
-
-# 训练输出（ultralytics 的 project/name）
-runs_dir: runs

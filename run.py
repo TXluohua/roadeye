@@ -82,11 +82,16 @@ def main() -> int:
     print("[2/3] 检查数据与指标")
     ensure_results()
     ensure_samples()
-    w = HERE / "runs" / "baseline" / "weights" / "best.pt"
-    if w.is_file():
-        print(f"  ✓ 权重 {w.name}（{w.stat().st_size / 1e6:.1f} MB）")
+    # 报告所有可用权重（现在可能有多个：640 基线 / 1024 重训）
+    found = []
+    for run_dir in sorted((HERE / "runs").glob("*/weights/best.pt")):
+        run_name = run_dir.parent.parent.name
+        found.append((run_name, run_dir.stat().st_size / 1e6))
+    if found:
+        for name, mb in found:
+            print(f"  ✓ 权重 {name}/weights/best.pt（{mb:.1f} MB）")
     else:
-        print("  ⚠ 没有训练好的权重，M1/M2/M5 的现场推理会失败（先跑 python train.py）")
+        print("  ⚠ 没有训练好的权重，M1/M2/M5/M6 的现场推理会失败（先跑 python train.py）")
 
     url = f"http://{args.host}:{args.port}"
     print(f"[3/3] 启动 {url}")
